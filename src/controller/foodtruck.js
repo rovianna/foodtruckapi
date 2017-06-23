@@ -15,7 +15,8 @@ export default({ config, db}) => {
     newFoodTruck.name = req.body.name;
     newFoodTruck.foodtype = req.body.foodtype;
     newFoodTruck.avgcost = req.body.avgcost;
-    newFoodTruck.geometry.coordinates = req.body.geometry.coordinates;
+    newFoodTruck.geometry.coordinates.lat = req.body.geometry.coordinates.lat;
+    newFoodTruck.geometry.coordinates.long = req.body.geometry.coordinates.long;
 
     newFoodTruck.save(err => {
       if (err) {
@@ -46,12 +47,16 @@ export default({ config, db}) => {
   });
 
   // 'v1/foodtruck/:id' - Update
-  api.put('/:id', (req, res) => {
+  api.put('/:id', authenticate, (req, res) => {
     FoodTruck.findById(req.params.id, (err, foodtruck) => {
       if (err) {
         res.send(err);
       }
       foodtruck.name = req.body.name;
+      foodtruck.foodtype = req.body.foodtype;
+      foodtruck.avgcost = req.body.avgcost;
+      foodtruck.geometry.coordinates.lat = req.body.geometry.coordinates.lat;
+      foodtruck.geometry.coordinates.long = req.body.geometry.coordinates.long;
       foodtruck.save(err => {
         if (err) {
           res.send(err);
@@ -62,20 +67,32 @@ export default({ config, db}) => {
   });
 
   // 'v1/foodtruck/:id' - Delete
-  api.delete('/:id', (req, res) => {
-    FoodTruck.remove({
-      _id: req.params.id
-    }, (err, foodtruck) => {
+  api.delete('/:id', authenticate, (req, res) => {
+    FoodTruck.findById(req.params.id, (err, foodtruck) => {
       if (err) {
-        res.send(err);
+        res.status(500).send(err);
+        return;
       }
-      res.json({message: "successfully removed"});
+      if (foodtruck === null) {
+        res.status(404).send("FoodTruck not found");
+        return;
+      }
+      FoodTruck.remove({
+        _id: req.params.id
+      }, (err, foodtruck) => {
+        if (err) {
+          res.status(500).send(err);
+          return;
+        }
+        res.json({message: "successfully removed"});
+      });
     });
   });
 
+
   //add review for a specific foodtruck id
   // 'v1/foodtruck/reviews/add/:id'
-  api.post('/reviews/add/:id', (req,res)=> {
+  api.post('/reviews/add/:id', authenticate, (req,res)=> {
     FoodTruck.findById(req.params.id, (err, foodtruck) => {
       if (err) {
         res.send(err);
